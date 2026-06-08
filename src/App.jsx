@@ -70,7 +70,7 @@ function App() {
   return (
     <div className="app">
       <header className="app-header">
-        <h1>Glazuren op moeders wijze</h1>
+        <h1>Glazuren op moeders wijze!!</h1>
         <p>Dag mama, wat gaan we doen vandaag?</p>
         {firebaseConfigured ? (
           <p className="sync-note">🔗 Je gegevens worden automatisch gesynchroniseerd met de cloud.</p>

@@ -210,4 +210,3 @@ This project is open source and available for personal use.
 
 Happy glazing! 🎨
 Trigger firebase deploy
-trigger firebase deploy

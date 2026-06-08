@@ -1,36 +1,34 @@
 import { initializeApp } from 'firebase/app'
 import { getFirestore, doc, onSnapshot, setDoc } from 'firebase/firestore'
 
+// 🔥 Firebase config rechtstreeks in code (werkt online!)
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  apiKey: "AIzaSyCMDYeZ6nnYfwYhsftQMiEZ8LRzgbviaGg",
+  authDomain: "receptenboek-3b572.firebaseapp.com",
+  projectId: "receptenboek-3b572",
+  storageBucket: "receptenboek-3b572.firebasestorage.app",
+  messagingSenderId: "220340282842",
+  appId: "1:220340282842:web:9992a9cfbf95d28023cce3"
 }
 
-export const firebaseConfigured = Object.values(firebaseConfig).every(Boolean)
+// ✅ Firebase staat nu ALTIJD aan
+export const firebaseConfigured = true
 
-let sharedDoc = null
+const app = initializeApp(firebaseConfig)
+const db = getFirestore(app)
 
-if (firebaseConfigured) {
-  const app = initializeApp(firebaseConfig)
-  const db = getFirestore(app)
-  sharedDoc = doc(db, 'glazuren', 'shared')
-}
+// 📄 Dit is jouw gedeelde database-document
+const sharedDoc = doc(db, 'glazuren', 'shared')
 
+// 📡 Data ophalen (live sync)
 export function subscribeGlazeData(onData, onError) {
-  if (!firebaseConfigured || !sharedDoc) return () => {}
-
   return onSnapshot(
     sharedDoc,
     (snapshot) => {
-      if (!snapshot.exists()) {
-        return
-      }
+      if (!snapshot.exists()) return
 
       const data = snapshot.data()
+
       onData({
         inventory: Array.isArray(data.inventory) ? data.inventory : [],
         recipes: Array.isArray(data.recipes) ? data.recipes : [],
@@ -42,7 +40,7 @@ export function subscribeGlazeData(onData, onError) {
   )
 }
 
+// 💾 Data opslaan
 export async function saveGlazeData({ inventory, recipes }) {
-  if (!firebaseConfigured || !sharedDoc) return
   await setDoc(sharedDoc, { inventory, recipes }, { merge: true })
 }

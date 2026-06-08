@@ -1,7 +1,7 @@
 import { initializeApp } from 'firebase/app'
 import { getFirestore, doc, onSnapshot, setDoc } from 'firebase/firestore'
 
-// 🔥 Firebase config rechtstreeks in code (werkt online!)
+// 🔥 Firebase config
 const firebaseConfig = {
   apiKey: "AIzaSyCMDYeZ6nnYfwYhsftQMiEZ8LRzgbviaGg",
   authDomain: "receptenboek-3b572.firebaseapp.com",
@@ -11,23 +11,35 @@ const firebaseConfig = {
   appId: "1:220340282842:web:9992a9cfbf95d28023cce3"
 }
 
-// ✅ Firebase staat nu ALTIJD aan
+// ✅ Firebase altijd actief
 export const firebaseConfigured = true
 
+// 🔧 Initialisatie
+console.log("🔥 Firebase wordt geïnitialiseerd...")
 const app = initializeApp(firebaseConfig)
-const db = getFirestore(app)
 
-// 📄 Dit is jouw gedeelde database-document
+const db = getFirestore(app)
+console.log("✅ Firestore verbonden")
+
+// 📄 document
 const sharedDoc = doc(db, 'glazuren', 'shared')
 
-// 📡 Data ophalen (live sync)
+// 📡 LIVE DATA OPHALEN
 export function subscribeGlazeData(onData, onError) {
+  console.log("📡 subscribe gestart")
+
   return onSnapshot(
     sharedDoc,
     (snapshot) => {
-      if (!snapshot.exists()) return
+      console.log("📥 snapshot ontvangen")
+
+      if (!snapshot.exists()) {
+        console.log("⚠️ document bestaat nog niet")
+        return
+      }
 
       const data = snapshot.data()
+      console.log("📦 data uit Firebase:", data)
 
       onData({
         inventory: Array.isArray(data.inventory) ? data.inventory : [],
@@ -35,12 +47,20 @@ export function subscribeGlazeData(onData, onError) {
       })
     },
     (error) => {
+      console.error("❌ READ ERROR:", error)
       onError(error.message)
     }
   )
 }
 
-// 💾 Data opslaan
+// 💾 DATA OPSLAAN
 export async function saveGlazeData({ inventory, recipes }) {
-  await setDoc(sharedDoc, { inventory, recipes }, { merge: true })
+  console.log("👉 PROBEER TE SCHRIJVEN:", { inventory, recipes })
+
+  try {
+    await setDoc(sharedDoc, { inventory, recipes }, { merge: true })
+    console.log("✅ SUCCES: data geschreven naar Firebase")
+  } catch (error) {
+    console.error("❌ FIREBASE WRITE ERROR:", error)
+  }
 }

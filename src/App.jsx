@@ -39,12 +39,8 @@ function App() {
 
     const unsubscribe = subscribeGlazeData((remoteData) => {
       remoteWriteRef.current = true
-      if (remoteData.inventory.length > 0) {
-        setInventory(sortInventory(remoteData.inventory))
-      }
-      if (remoteData.recipes.length > 0) {
-        setRecipes(sortRecipes(remoteData.recipes))
-      }
+      setInventory(sortInventory(remoteData.inventory))
+      setRecipes(sortRecipes(remoteData.recipes))
     }, setRemoteError)
 
     return () => unsubscribe()
@@ -56,7 +52,7 @@ function App() {
     localStorage.setItem('inventory', JSON.stringify(inventory))
     localStorage.setItem('recipes', JSON.stringify(recipes))
 
-    if (firebaseConfigured && !remoteWriteRef.current) {
+    if (firebaseConfigured && hasHydrated && !remoteWriteRef.current) {
       saveGlazeData({ inventory, recipes }).catch((error) => {
         setRemoteError(error.message)
       })

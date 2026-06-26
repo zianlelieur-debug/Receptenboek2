@@ -93,7 +93,7 @@ function App() {
           className={`tab-btn ${currentTab === 'inventory' ? 'active' : ''}`}
           onClick={() => setCurrentTab('inventory')}
         >
-          In de kast
+          Ingredienten
         </button>
         <button
           className={`tab-btn ${currentTab === 'recipes' ? 'active' : ''}`}
@@ -111,7 +111,7 @@ function App() {
           className={`tab-btn ${currentTab === 'shoppinglist' ? 'active' : ''}`}
           onClick={() => setCurrentTab('shoppinglist')}
         >
-          Shoppinglist
+          Lijstje
         </button>
       </nav>
 

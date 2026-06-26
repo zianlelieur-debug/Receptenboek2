@@ -2,35 +2,55 @@ import { useState } from 'react'
 import './Inventory.css'
 
 function Inventory({ inventory, setInventory }) {
-  const [newChemical, setNewChemical] = useState({ name: '', quantity: '', unit: 'g' })
+  const [newChemical, setNewChemical] = useState({
+    name: '',
+    quantity: '',
+    unit: 'g'
+  })
 
   const sortInventory = (list) =>
-    [...list].sort((a, b) => a.name.localeCompare(b.name, 'nl', { sensitivity: 'base' }))
+    [...list].sort((a, b) =>
+      a.name.localeCompare(b.name, 'nl', { sensitivity: 'base' })
+    )
+
+  const toGrams = (q, unit) => (unit === 'kg' ? q * 1000 : q)
+  const fromGrams = (g, unit) => (unit === 'kg' ? g / 1000 : g)
 
   const handleAddChemical = () => {
-    if (!newChemical.name || !newChemical.quantity) {
+    if (!newChemical.name.trim() || !newChemical.quantity) {
       alert('Vul alle velden in')
       return
     }
 
-    // Check if chemical already exists (case-insensitive)
-    const existingChemical = inventory.find(
-      item => item.name.toLowerCase() === newChemical.name.toLowerCase()
+    const grams = toGrams(parseFloat(newChemical.quantity), newChemical.unit)
+    const existing = inventory.find(
+      item => item.name.toLowerCase() === newChemical.name.trim().toLowerCase()
     )
 
-    if (existingChemical) {
-      alert(`"${newChemical.name}" bestaat al in de voorraad. Pas het bestaande item aan.`)
-      return
+    if (existing) {
+      setInventory(
+        sortInventory(
+          inventory.map(item =>
+            item.id === existing.id
+              ? { ...item, quantity: item.quantity + grams }
+              : item
+          )
+        )
+      )
+    } else {
+      setInventory(
+        sortInventory([
+          ...inventory,
+          {
+            id: Date.now(),
+            name: newChemical.name.trim(),
+            quantity: grams,
+            displayUnit: 'g'
+          }
+        ])
+      )
     }
 
-    const chemical = {
-      id: Date.now(),
-      name: newChemical.name,
-      quantity: parseFloat(newChemical.quantity),
-      unit: newChemical.unit
-    }
-
-    setInventory(sortInventory([...inventory, chemical]))
     setNewChemical({ name: '', quantity: '', unit: 'g' })
   }
 
@@ -38,53 +58,71 @@ function Inventory({ inventory, setInventory }) {
     setInventory(inventory.filter(item => item.id !== id))
   }
 
-  const handleUpdateQuantity = (id, newQuantity) => {
-    setInventory(inventory.map(item =>
-      item.id === id ? { ...item, quantity: parseFloat(newQuantity) || 0 } : item
-    ))
+  const handleUpdateQuantity = (id, value, unit) => {
+    const grams = toGrams(parseFloat(value) || 0, unit)
+
+    setInventory(
+      inventory.map(item =>
+        item.id === id ? { ...item, quantity: grams } : item
+      )
+    )
   }
 
-  const handleUpdateUnit = (id, newUnit) => {
-    setInventory(inventory.map(item =>
-      item.id === id ? { ...item, unit: newUnit } : item
-    ))
+  const handleUpdateUnit = (id, unit) => {
+    setInventory(
+      inventory.map(item =>
+        item.id === id ? { ...item, displayUnit: unit } : item
+      )
+    )
+  }
+
+  const handleUpdateName = (id, value) => {
+    setInventory(
+      inventory.map(item =>
+        item.id === id ? { ...item, name: value } : item
+      )
+    )
   }
 
   return (
     <div className="inventory-container">
-      <h2>Voorraad</h2>
+      <div className="inventory-header">
+        <div>
+          <p className="inventory-eyebrow">Bewerkbare voorraad</p>
+          <h2>Voorraad</h2>
+        </div>
+        <span className="inventory-counter">{inventory.length} ingrediënten</span>
+      </div>
 
       <div className="add-chemical-form">
         <input
           type="text"
-          placeholder="Stof"
+          placeholder="Ingredient"
           value={newChemical.name}
-          onChange={(e) => setNewChemical({ ...newChemical, name: e.target.value })}
-          list="chemicals-list"
+          onChange={(e) =>
+            setNewChemical({ ...newChemical, name: e.target.value })
+          }
         />
-        <datalist id="chemicals-list">
-          {inventory.map(item => (
-            <option key={item.id} value={item.name} />
-          ))}
-        </datalist>
+
         <input
           type="number"
           placeholder="Hoeveelheid"
           value={newChemical.quantity}
-          onChange={(e) => setNewChemical({ ...newChemical, quantity: e.target.value })}
-          step="0.1"
+          onChange={(e) =>
+            setNewChemical({ ...newChemical, quantity: e.target.value })
+          }
         />
+
         <select
           value={newChemical.unit}
-          onChange={(e) => setNewChemical({ ...newChemical, unit: e.target.value })}
+          onChange={(e) =>
+            setNewChemical({ ...newChemical, unit: e.target.value })
+          }
         >
           <option value="g">gram (g)</option>
           <option value="kg">kilogram (kg)</option>
-          <option value="ml">milliliter (ml)</option>
-          <option value="l">liter (l)</option>
-          <option value="tsp">theelepel (tsp)</option>
-          <option value="tbsp">eetlepel (tbsp)</option>
         </select>
+
         <button onClick={handleAddChemical} className="add-btn">
           Toevoegen
         </button>
@@ -92,56 +130,61 @@ function Inventory({ inventory, setInventory }) {
 
       <div className="inventory-list">
         {inventory.length === 0 ? (
-          <p className="empty-message">Geen stoffen in voorraad. Voeg er een toe hierboven!</p>
+          <div className="inventory-empty">
+            Nog geen ingrediënten toegevoegd.
+          </div>
         ) : (
-          <table className="inventory-table">
-            <thead>
-              <tr>
-                <th>Stof</th>
-                <th>Hoeveelheid</th>
-                <th>Eenheid</th>
-                <th>Actie</th>
-              </tr>
-            </thead>
-            <tbody>
-              {inventory.map(item => (
-                <tr key={item.id}>
-                  <td className="name">{item.name}</td>
-                  <td>
+          inventory.map(item => {
+            const unit = item.displayUnit || 'g'
+            const value = fromGrams(item.quantity, unit)
+
+            return (
+              <div className="inventory-row" key={item.id}>
+                <div className="inventory-row-main">
+                  <label className="inventory-field">
+                    <span>Ingredient</span>
                     <input
-                      type="number"
-                      value={item.quantity}
-                      onChange={(e) => handleUpdateQuantity(item.id, e.target.value)}
-                      step="0.1"
-                      className="quantity-input"
+                      className="inventory-input"
+                      type="text"
+                      value={item.name}
+                      onChange={(e) => handleUpdateName(item.id, e.target.value)}
                     />
-                  </td>
-                  <td>
+                  </label>
+
+                  <label className="inventory-field">
+                    <span>Hoeveelheid</span>
+                    <input
+                      className="inventory-input"
+                      type="number"
+                      value={value}
+                      onChange={(e) =>
+                        handleUpdateQuantity(item.id, e.target.value, unit)
+                      }
+                    />
+                  </label>
+
+                  <label className="inventory-field">
+                    <span>Eenheid</span>
                     <select
-                      value={item.unit}
+                      className="inventory-select"
+                      value={unit}
                       onChange={(e) => handleUpdateUnit(item.id, e.target.value)}
-                      className="unit-select"
                     >
                       <option value="g">g</option>
                       <option value="kg">kg</option>
-                      <option value="ml">ml</option>
-                      <option value="l">l</option>
-                      <option value="tsp">tsp</option>
-                      <option value="tbsp">tbsp</option>
                     </select>
-                  </td>
-                  <td>
-                    <button
-                      onClick={() => handleDeleteChemical(item.id)}
-                      className="delete-btn"
-                    >
-                      Delete
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                  </label>
+                </div>
+
+                <button
+                  className="delete-btn"
+                  onClick={() => handleDeleteChemical(item.id)}
+                >
+                  Verwijder
+                </button>
+              </div>
+            )
+          })
         )}
       </div>
     </div>

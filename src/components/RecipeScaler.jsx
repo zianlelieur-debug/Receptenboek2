@@ -200,7 +200,7 @@ function RecipeScaler({ recipes, inventory, setInventory }) {
           <div className="magic-card">
             <img
               className="magic-gif"
-              src="/witchcraft.gif"
+              src="/Receptenboek2/witchcraft.gif"
               alt="Witch stirring a cauldron"
             />
           </div>

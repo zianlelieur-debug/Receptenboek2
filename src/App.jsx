@@ -3,14 +3,17 @@ import './App.css'
 import Inventory from './components/Inventory'
 import Recipes from './components/Recipes'
 import RecipeScaler from './components/RecipeScaler'
+import ShoppingList from './components/ShoppingList'
 import { firebaseConfigured, subscribeGlazeData, saveGlazeData } from './firebaseConfig'
 
 function App() {
   const [currentTab, setCurrentTab] = useState('inventory')
   const [inventory, setInventory] = useState([])
   const [recipes, setRecipes] = useState([])
+  const [shoppinglist, setShoppinglist] = useState([])
   const [hasHydrated, setHasHydrated] = useState(false)
   const [remoteError, setRemoteError] = useState(null)
+  const [remoteLoaded, setRemoteLoaded] = useState(false)
   const remoteWriteRef = useRef(false)
 
   const sortInventory = (list) =>
@@ -22,6 +25,7 @@ function App() {
   useEffect(() => {
     const savedInventory = localStorage.getItem('inventory')
     const savedRecipes = localStorage.getItem('recipes')
+    const savedShoppinglist = localStorage.getItem('shoppinglist')
 
     if (savedInventory) {
       const loadedInventory = JSON.parse(savedInventory)
@@ -31,16 +35,23 @@ function App() {
       const loadedRecipes = JSON.parse(savedRecipes)
       setRecipes(sortRecipes(loadedRecipes))
     }
+    if (savedShoppinglist) {
+      setShoppinglist(JSON.parse(savedShoppinglist))
+    }
     setHasHydrated(true)
   }, [])
 
   useEffect(() => {
     if (!firebaseConfigured) return
-
     const unsubscribe = subscribeGlazeData((remoteData) => {
-      remoteWriteRef.current = true
+    remoteWriteRef.current = true
+
       setInventory(sortInventory(remoteData.inventory))
       setRecipes(sortRecipes(remoteData.recipes))
+      setShoppinglist(Array.isArray(remoteData.shoppinglist) ? remoteData.shoppinglist : [])
+
+      setRemoteLoaded(true) // ✅ moet erin staan
+
     }, setRemoteError)
 
     return () => unsubscribe()
@@ -51,9 +62,10 @@ function App() {
 
     localStorage.setItem('inventory', JSON.stringify(inventory))
     localStorage.setItem('recipes', JSON.stringify(recipes))
+    localStorage.setItem('shoppinglist', JSON.stringify(shoppinglist))
 
-    if (firebaseConfigured && hasHydrated && !remoteWriteRef.current) {
-      saveGlazeData({ inventory, recipes }).catch((error) => {
+    if (firebaseConfigured && hasHydrated && remoteLoaded && !remoteWriteRef.current) {
+      saveGlazeData({ inventory, recipes, shoppinglist }).catch((error) => {
         setRemoteError(error.message)
       })
     }
@@ -61,7 +73,7 @@ function App() {
     if (remoteWriteRef.current) {
       remoteWriteRef.current = false
     }
-  }, [inventory, recipes, hasHydrated])
+  }, [inventory, recipes, shoppinglist, hasHydrated, remoteLoaded])
 
   return (
     <div className="app">
@@ -95,6 +107,12 @@ function App() {
         >
           Maken
         </button>
+        <button
+          className={`tab-btn ${currentTab === 'shoppinglist' ? 'active' : ''}`}
+          onClick={() => setCurrentTab('shoppinglist')}
+        >
+          Shoppinglist
+        </button>
       </nav>
 
       <main className="app-content">
@@ -106,6 +124,9 @@ function App() {
         )}
         {currentTab === 'scale' && (
           <RecipeScaler recipes={recipes} inventory={inventory} setInventory={setInventory} />
+        )}
+        {currentTab === 'shoppinglist' && (
+          <ShoppingList shoppinglist={shoppinglist} setShoppinglist={setShoppinglist} />
         )}
       </main>
     </div>

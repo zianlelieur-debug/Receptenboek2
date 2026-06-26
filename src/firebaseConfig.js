@@ -44,6 +44,7 @@ export function subscribeGlazeData(onData, onError) {
       onData({
         inventory: Array.isArray(data.inventory) ? data.inventory : [],
         recipes: Array.isArray(data.recipes) ? data.recipes : [],
+        shoppinglist: Array.isArray(data.shoppinglist) ? data.shoppinglist : [],
       })
     },
     (error) => {
@@ -54,11 +55,11 @@ export function subscribeGlazeData(onData, onError) {
 }
 
 // 💾 DATA OPSLAAN
-export async function saveGlazeData({ inventory, recipes }) {
-  console.log("👉 PROBEER TE SCHRIJVEN:", { inventory, recipes })
+export async function saveGlazeData({ inventory, recipes, shoppinglist }) {
+  console.log("👉 PROBEER TE SCHRIJVEN:", { inventory, recipes, shoppinglist })
 
   try {
-    await setDoc(sharedDoc, { inventory, recipes }, { merge: true })
+    await setDoc(sharedDoc, { inventory, recipes, shoppinglist }, { merge: true })
     console.log("✅ SUCCES: data geschreven naar Firebase")
   } catch (error) {
     console.error("❌ FIREBASE WRITE ERROR:", error)

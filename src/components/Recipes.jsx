@@ -201,12 +201,12 @@ function Recipes({
       {recipes.map(r => (
         <div key={r.id} className="recipe-block">
 
-          <div style={{display:'flex',justifyContent:'space-between'}}>
+          <div className="recipe-block-header">
             <h3 onClick={() => setSelected(selected?.id === r.id ? null : r)}>
               {r.name}
             </h3>
 
-            <div>
+            <div className="recipe-actions">
               <button onClick={() => {setEditing(r); setNewRecipe(r); setShowForm(true)}}>✏️</button>
               <button onClick={() => setRecipes(recipes.filter(x => x.id !== r.id))}>🗑</button>
             </div>

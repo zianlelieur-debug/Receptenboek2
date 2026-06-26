@@ -11,16 +11,18 @@ function Recipes({
 }) {
   const [showForm, setShowForm] = useState(false)
   const [selected, setSelected] = useState(null)
+  const [editing, setEditing] = useState(null)
   const [amount, setAmount] = useState(1000)
 
-  const [newRecipe, setNewRecipe] = useState({
+  const emptyRecipe = {
     name: '',
     ingredients: [],
     colorants: [],
     temperature: '',
     notes: ''
-  })
+  }
 
+  const [newRecipe, setNewRecipe] = useState(emptyRecipe)
   const [ing, setIng] = useState({ name: '', percentage: '' })
   const [col, setCol] = useState({ name: '', percentage: '', note: '' })
 
@@ -29,51 +31,83 @@ function Recipes({
       a.name.localeCompare(b.name, 'nl', { sensitivity: 'base' })
     )
 
-  // 🔹 RECEPT OPSLAAN
+  // ✅ SAVE (ADD + EDIT)
   const save = () => {
     if (!newRecipe.name || newRecipe.ingredients.length === 0) {
-      alert('Naam + basis ingrediënten verplicht')
+      alert('Naam + ingrediënten nodig')
       return
     }
 
-    setRecipes(sort([...recipes, { ...newRecipe, id: Date.now() }]))
+    if (editing) {
+      setRecipes(sort(recipes.map(r =>
+        r.id === editing.id ? { ...newRecipe, id: r.id } : r
+      )))
+    } else {
+      setRecipes(sort([...recipes, { ...newRecipe, id: Date.now() }]))
+    }
+
     setShowForm(false)
-    setNewRecipe({ name: '', ingredients: [], colorants: [], temperature: '', notes: '' })
+    setEditing(null)
+    setNewRecipe(emptyRecipe)
   }
 
-  // 🔹 INGREDIENT
+  // ✅ EDIT
+  const startEdit = (recipe) => {
+    setEditing(recipe)
+    setNewRecipe(recipe)
+    setShowForm(true)
+    setSelected(null)
+  }
+
+  // ✅ DELETE
+  const removeRecipe = (id) => {
+    setRecipes(recipes.filter(r => r.id !== id))
+    if (selected?.id === id) setSelected(null)
+  }
+
+  // ✅ ADD INGREDIENT
   const addIngredient = () => {
     if (!ing.name || !ing.percentage) return
 
     setNewRecipe({
       ...newRecipe,
-      ingredients: [...newRecipe.ingredients, {
-        id: Date.now(),
-        name: ing.name,
-        percentage: parseFloat(ing.percentage)
-      }]
+      ingredients: [
+        ...newRecipe.ingredients,
+        {
+          id: Date.now(),
+          name: ing.name,
+          percentage: parseFloat(ing.percentage)
+        }
+      ]
     })
 
     setIng({ name: '', percentage: '' })
   }
 
-  // 🔹 INKLEURING
+  // ✅ REMOVE INGREDIENT (in form!)
+  const removeIngredient = (id) => {
+    setNewRecipe({
+      ...newRecipe,
+      ingredients: newRecipe.ingredients.filter(i => i.id !== id)
+    })
+  }
+
+  // ✅ ADD COLORANT
   const addColorant = () => {
     if (!col.name || !col.percentage) return
 
     setNewRecipe({
       ...newRecipe,
-      colorants: [...newRecipe.colorants, {
-        id: Date.now(),
-        ...col,
-        percentage: parseFloat(col.percentage)
-      }]
+      colorants: [
+        ...newRecipe.colorants,
+        { id: Date.now(), ...col, percentage: parseFloat(col.percentage) }
+      ]
     })
 
     setCol({ name: '', percentage: '', note: '' })
   }
 
-  // 🔹 BEREKENING
+  // ✅ CALCULATE
   const calculate = (recipe) =>
     recipe.ingredients.map(i => {
       const needed = (i.percentage / 100) * amount
@@ -87,7 +121,7 @@ function Recipes({
       }
     })
 
-  // 🔹 NAAR LIJSTJE (combineer)
+  // ✅ ADD TO SHOPPINGLIST
   const addToList = (name, qty) => {
     const existing = shoppinglist.find(i => i.name.toLowerCase() === name.toLowerCase())
 
@@ -105,7 +139,7 @@ function Recipes({
     }
   }
 
-  // 🔹 MAKEN
+  // ✅ MAKE
   const make = (recipe) => {
     if (!confirm('Ingredienten worden verwijderd uit voorraad!')) return
 
@@ -114,45 +148,46 @@ function Recipes({
         i.name.toLowerCase() === item.name.toLowerCase()
       )
 
-      if (match) {
-        return { ...item, quantity: item.quantity - match.needed }
-      }
-      return item
+      return match
+        ? { ...item, quantity: item.quantity - match.needed }
+        : item
     })
 
     setInventory(newInv)
-
-    setTimeout(() => {
-      alert('🧙‍♀️ Glazuur gemaakt!')
-    }, 300)
+    alert('🧙‍♀️ Glazuur gemaakt!')
   }
 
   return (
     <div className="recipes-container">
+
+      {/* HEADER */}
       <div className="recipes-header">
         <div>
           <p className="recipes-eyebrow">Recepten</p>
           <h2>Recepten</h2>
         </div>
-        <div className="recipes-counter">
-          {recipes.length} recept{recipes.length === 1 ? '' : 'en'}
-        </div>
+        <span className="recipes-counter">
+          {recipes.length} recepten
+        </span>
       </div>
 
+      {/* ADD BAR */}
       <div className="add-bar" onClick={() => setShowForm(!showForm)}>
         + Nieuw recept
       </div>
 
+      {/* FORM */}
       {showForm && (
         <div className="recipe-form">
+
           <input
             className="inventory-input"
             placeholder="Naam"
             value={newRecipe.name}
-            onChange={e => setNewRecipe({ ...newRecipe, name: e.target.value })}
+            onChange={(e) => setNewRecipe({ ...newRecipe, name: e.target.value })}
           />
 
-          <h4>Basis (100%)</h4>
+          <h4>Basis ingrediënten</h4>
 
           <div className="inline">
             <input
@@ -160,7 +195,7 @@ function Recipes({
               list="ingredients"
               placeholder="Ingredient"
               value={ing.name}
-              onChange={e => setIng({ ...ing, name: e.target.value })}
+              onChange={(e) => setIng({ ...ing, name: e.target.value })}
             />
             <datalist id="ingredients">
               {inventory.map(i => <option key={i.id} value={i.name} />)}
@@ -171,10 +206,22 @@ function Recipes({
               type="number"
               placeholder="%"
               value={ing.percentage}
-              onChange={e => setIng({ ...ing, percentage: e.target.value })}
+              onChange={(e) => setIng({ ...ing, percentage: e.target.value })}
             />
 
             <button className="add-btn" onClick={addIngredient}>+</button>
+          </div>
+
+          {/* ✅ LIJST VAN TOEGEVOEGDE INGREDIENTEN */}
+          <div className="ingredient-list">
+            {newRecipe.ingredients.map(i => (
+              <div key={i.id} className="ingredient-row">
+                {i.name} — {i.percentage}%
+                <button className="mini-btn" onClick={() => removeIngredient(i.id)}>
+                  ❌
+                </button>
+              </div>
+            ))}
           </div>
 
           <h4>Inkleuringen</h4>
@@ -184,104 +231,70 @@ function Recipes({
               className="inventory-input"
               placeholder="Stof"
               value={col.name}
-              onChange={e => setCol({ ...col, name: e.target.value })}
+              onChange={(e) => setCol({ ...col, name: e.target.value })}
             />
             <input
               className="inventory-input"
               type="number"
               placeholder="%"
               value={col.percentage}
-              onChange={e => setCol({ ...col, percentage: e.target.value })}
+              onChange={(e) => setCol({ ...col, percentage: e.target.value })}
             />
             <input
               className="inventory-input"
               placeholder="Effect"
               value={col.note}
-              onChange={e => setCol({ ...col, note: e.target.value })}
+              onChange={(e) => setCol({ ...col, note: e.target.value })}
             />
             <button className="add-btn" onClick={addColorant}>+</button>
           </div>
 
-          <input
-            className="inventory-input"
-            placeholder="Baktemperatuur"
-            value={newRecipe.temperature}
-            onChange={e => setNewRecipe({ ...newRecipe, temperature: e.target.value })}
-          />
-
-          <input
-            className="inventory-input"
-            placeholder="Opmerking"
-            value={newRecipe.notes}
-            onChange={e => setNewRecipe({ ...newRecipe, notes: e.target.value })}
-          />
-
-          <button className="add-btn save-btn" onClick={save}>Opslaan</button>
+          <button className="add-btn save-btn" onClick={save}>
+            {editing ? 'Bijwerken' : 'Opslaan'}
+          </button>
         </div>
       )}
 
+      {/* LIST */}
       <div className="recipes-list">
         {recipes.map(r => (
-          <div
-            key={r.id}
-            className={`recipe-bar ${selected?.id === r.id ? 'active' : ''}`}
-            onClick={() => setSelected(r)}
-          >
-            <span>{r.name}</span>
-            <small>{r.ingredients.length} ingrediënt{r.ingredients.length === 1 ? '' : 'en'}</small>
+          <div key={r.id} className="recipe-bar">
+            
+            <span onClick={() => setSelected(r)}>{r.name}</span>
+
+            <div className="actions">
+              <button onClick={() => startEdit(r)} className="mini-btn">✏️</button>
+              <button onClick={() => removeRecipe(r.id)} className="mini-btn">🗑</button>
+            </div>
           </div>
         ))}
       </div>
 
+      {/* DETAIL */}
       {selected && (
         <div className="recipe-detail">
-          <div className="recipe-detail-header">
-            <h3>{selected.name}</h3>
-            <div className="recipe-detail-badge">{amount}g basis</div>
-          </div>
+          <h3>{selected.name}</h3>
 
-          <label className="recipe-amount-label">
-            <span>Hoeveelheid basis</span>
-            <input
-              className="inventory-input"
-              type="number"
-              value={amount}
-              onChange={e => setAmount(parseFloat(e.target.value))}
-            />
-          </label>
+          <input
+            className="inventory-input"
+            type="number"
+            value={amount}
+            onChange={e => setAmount(parseFloat(e.target.value))}
+          />
 
-          <div className="ingredient-list">
-            {calculate(selected).map(i => (
-              <div key={i.id} className="ingredient-row">
-                <div>
-                  <strong>{i.name}</strong>
-                  <div className="ingredient-meta">{i.needed.toFixed(1)}g nodig</div>
-                </div>
+          {calculate(selected).map(i => (
+            <div key={i.id} className="ingredient-row">
+              {i.name} — {i.needed.toFixed(1)}g
 
-                {i.missing > 0 && (
-                  <button className="mini-btn" onClick={() => addToList(i.name, i.missing)}>
-                    ➕ lijst
-                  </button>
-                )}
-              </div>
-            ))}
-          </div>
+              {i.missing > 0 && (
+                <button onClick={() => addToList(i.name, i.missing)} className="mini-btn">
+                  ➕ lijst
+                </button>
+              )}
+            </div>
+          ))}
 
-          <h4>Inkleuringen</h4>
-          <div className="colorant-list">
-            {selected.colorants.map(c => (
-              <div key={c.id} className="colorant-item">
-                {c.name} (+{c.percentage}%) — {c.note}
-              </div>
-            ))}
-          </div>
-
-          <div className="recipe-notes">
-            <p>🔥 {selected.temperature}</p>
-            <p>{selected.notes}</p>
-          </div>
-
-          <button className="add-btn make-btn" onClick={() => make(selected)}>
+          <button className="add-btn" onClick={() => make(selected)}>
             MAKEN
           </button>
         </div>

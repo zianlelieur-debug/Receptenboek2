@@ -9,8 +9,10 @@ function Recipes({
   shoppinglist,
   setShoppinglist
 }) {
+
   const [showForm, setShowForm] = useState(false)
   const [selected, setSelected] = useState(null)
+  const [popup, setPopup] = useState(null)
 
   const [amount, setAmount] = useState(100)
   const [unit, setUnit] = useState('g')
@@ -24,6 +26,8 @@ function Recipes({
   }
 
   const [newRecipe, setNewRecipe] = useState(emptyRecipe)
+  const [editing, setEditing] = useState(null)
+
   const [ing, setIng] = useState({ name: '', percentage: '' })
   const [col, setCol] = useState({ name: '', percentage: '', note: '' })
 
@@ -33,13 +37,16 @@ function Recipes({
     )
 
   const save = () => {
-    if (!newRecipe.name || newRecipe.ingredients.length === 0) {
-      alert('Naam + ingrediënten verplicht')
-      return
+    if (!newRecipe.name || newRecipe.ingredients.length === 0) return
+
+    if (editing) {
+      setRecipes(sort(recipes.map(r => r.id === editing.id ? newRecipe : r)))
+    } else {
+      setRecipes(sort([...recipes, { ...newRecipe, id: Date.now() }]))
     }
 
-    setRecipes(sort([...recipes, { ...newRecipe, id: Date.now() }]))
     setNewRecipe(emptyRecipe)
+    setEditing(null)
     setShowForm(false)
   }
 
@@ -48,10 +55,11 @@ function Recipes({
 
     setNewRecipe({
       ...newRecipe,
-      ingredients: [
-        ...newRecipe.ingredients,
-        { id: Date.now(), name: ing.name, percentage: parseFloat(ing.percentage) }
-      ]
+      ingredients: [...newRecipe.ingredients, {
+        id: Date.now(),
+        ...ing,
+        percentage: parseFloat(ing.percentage)
+      }]
     })
 
     setIng({ name: '', percentage: '' })
@@ -62,36 +70,36 @@ function Recipes({
 
     setNewRecipe({
       ...newRecipe,
-      colorants: [
-        ...newRecipe.colorants,
-        { id: Date.now(), ...col, percentage: parseFloat(col.percentage || 0), used: 0 }
-      ]
+      colorants: [...newRecipe.colorants, {
+        id: Date.now(),
+        ...col,
+        used: 0
+      }]
     })
 
     setCol({ name: '', percentage: '', note: '' })
   }
 
-  const updateColorantUse = (id, value) => {
-    setSelected({
-      ...selected,
-      colorants: selected.colorants.map(c =>
-        c.id === id ? { ...c, used: parseFloat(value) || 0 } : c
-      )
-    })
-  }
-
   const addToList = (name, qty) => {
-    const existing = shoppinglist.find(i => i.name.toLowerCase() === name.toLowerCase())
+    const existing = shoppinglist.find(i => i.name === name)
 
     if (existing) {
-      setShoppinglist(
-        shoppinglist.map(i =>
-          i.id === existing.id ? { ...i, quantity: i.quantity + qty } : i
-        )
-      )
+      setShoppinglist(shoppinglist.map(i =>
+        i.id === existing.id
+          ? { ...i, quantity: i.quantity + qty }
+          : i
+      ))
     } else {
-      setShoppinglist([...shoppinglist, { id: Date.now(), name, quantity: qty, unit: 'g' }])
+      setShoppinglist([...shoppinglist, {
+        id: Date.now(),
+        name,
+        quantity: qty,
+        unit: 'g'
+      }])
     }
+
+    setPopup(`${name} (${qty.toFixed(1)}) toegevoegd`)
+    setTimeout(() => setPopup(null), 2000)
   }
 
   return (
@@ -105,7 +113,6 @@ function Recipes({
         + Nieuw recept
       </div>
 
-      {/* ✅ FORM */}
       {showForm && (
         <div className="recipe-form">
 
@@ -121,14 +128,12 @@ function Recipes({
           <div className="inline">
             <input
               className="input"
-              list="ingredients"
               placeholder="Ingredient"
               value={ing.name}
               onChange={(e) => setIng({ ...ing, name: e.target.value })}
             />
             <input
               className="input"
-              type="number"
               placeholder="%"
               value={ing.percentage}
               onChange={(e) => setIng({ ...ing, percentage: e.target.value })}
@@ -136,7 +141,6 @@ function Recipes({
             <button className="add-btn" onClick={addIngredient}>+</button>
           </div>
 
-          {/* ✅ INGREDIENTEN LIJST */}
           <div className="ingredient-list">
             {newRecipe.ingredients.map(i => (
               <div key={i.id}>{i.name} — {i.percentage}%</div>
@@ -147,20 +151,19 @@ function Recipes({
 
           <div className="inline colorant">
             <input
-              className="input small"
+              className="input"
               placeholder="Stof"
               value={col.name}
               onChange={(e) => setCol({ ...col, name: e.target.value })}
             />
             <input
               className="input"
-              type="number"
               placeholder="%"
               value={col.percentage}
               onChange={(e) => setCol({ ...col, percentage: e.target.value })}
             />
             <input
-              className="input large"
+              className="input"
               placeholder="Effect"
               value={col.note}
               onChange={(e) => setCol({ ...col, note: e.target.value })}
@@ -168,8 +171,7 @@ function Recipes({
             <button className="add-btn" onClick={addColorant}>+</button>
           </div>
 
-          {/* ✅ LIJST INKLEURINGEN */}
-          <div className="ingredient-list">
+          <div className="colorant-list">
             {newRecipe.colorants.map(c => (
               <div key={c.id}>{c.name} — {c.percentage}% ({c.note})</div>
             ))}
@@ -189,29 +191,35 @@ function Recipes({
             onChange={(e) => setNewRecipe({ ...newRecipe, notes: e.target.value })}
           />
 
-          <button className="add-btn" onClick={save}>Opslaan</button>
+          <button className="add-btn" onClick={save}>
+            Opslaan
+          </button>
 
         </div>
       )}
 
-      {/* ✅ RECEPTEN */}
       {recipes.map(r => (
         <div key={r.id} className="recipe-block">
 
-          <h3 onClick={() => setSelected(r)}>{r.name}</h3>
+          <div style={{display:'flex',justifyContent:'space-between'}}>
+            <h3 onClick={() => setSelected(selected?.id === r.id ? null : r)}>
+              {r.name}
+            </h3>
+
+            <div>
+              <button onClick={() => {setEditing(r); setNewRecipe(r); setShowForm(true)}}>✏️</button>
+              <button onClick={() => setRecipes(recipes.filter(x => x.id !== r.id))}>🗑</button>
+            </div>
+          </div>
 
           {selected?.id === r.id && (
-            <div>
-
+            <>
               <div className="amount-row">
-                <div>
-                  <p>Hoeveelheid:</p>
-                  <input
-                    type="number"
-                    value={amount}
-                    onChange={(e) => setAmount(parseFloat(e.target.value))}
-                  />
-                </div>
+                <input
+                  type="number"
+                  value={amount}
+                  onChange={(e) => setAmount(parseFloat(e.target.value))}
+                />
 
                 <select value={unit} onChange={(e) => setUnit(e.target.value)}>
                   <option>g</option>
@@ -227,12 +235,10 @@ function Recipes({
                 const needed = (i.percentage / 100) * amount
                 const inv = inventory.find(x => x.name === i.name)
                 const have = inv?.quantity || 0
-
                 const missing = needed - have
 
                 return (
                   <div key={i.id} className="ingredient-row">
-
                     <span>{i.name}</span>
                     <span>{needed.toFixed(1)} {unit}</span>
 
@@ -251,32 +257,27 @@ function Recipes({
 
               <h4>Inkleuringen</h4>
 
-              {selected.colorants.map(c => {
+              {r.colorants.map(c => {
                 const q = (c.used / 100) * amount
-
                 return (
                   <div key={c.id} className="ingredient-row">
-
                     <div>
                       <strong>{c.name}</strong>
                       <div className="small-text">{c.note}</div>
                     </div>
-
-                    <input
-                      type="number"
-                      value={c.used || 0}
-                      onChange={(e) => updateColorantUse(c.id, e.target.value)}
-                    />
-
+                    <input type="number" defaultValue={0}/>
                     <span>{q.toFixed(1)} {unit}</span>
-
                   </div>
                 )
               })}
-            </div>
+            </>
           )}
+
         </div>
       ))}
+
+      {popup && <div className="popup">{popup}</div>}
+
     </div>
   )
 }

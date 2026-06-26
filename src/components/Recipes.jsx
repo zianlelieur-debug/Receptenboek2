@@ -129,17 +129,24 @@ function Recipes({
 
   return (
     <div className="recipes-container">
+      <div className="recipes-header">
+        <div>
+          <p className="recipes-eyebrow">Recepten</p>
+          <h2>Recepten</h2>
+        </div>
+        <div className="recipes-counter">
+          {recipes.length} recept{recipes.length === 1 ? '' : 'en'}
+        </div>
+      </div>
 
-      {/* + BALK */}
       <div className="add-bar" onClick={() => setShowForm(!showForm)}>
         + Nieuw recept
       </div>
 
-      {/* FORM */}
       {showForm && (
         <div className="recipe-form">
-
           <input
+            className="inventory-input"
             placeholder="Naam"
             value={newRecipe.name}
             onChange={e => setNewRecipe({ ...newRecipe, name: e.target.value })}
@@ -148,7 +155,10 @@ function Recipes({
           <h4>Basis (100%)</h4>
 
           <div className="inline">
-            <input list="ingredients" placeholder="Ingredient"
+            <input
+              className="inventory-input"
+              list="ingredients"
+              placeholder="Ingredient"
               value={ing.name}
               onChange={e => setIng({ ...ing, name: e.target.value })}
             />
@@ -157,94 +167,121 @@ function Recipes({
             </datalist>
 
             <input
+              className="inventory-input"
               type="number"
               placeholder="%"
               value={ing.percentage}
               onChange={e => setIng({ ...ing, percentage: e.target.value })}
             />
 
-            <button onClick={addIngredient}>+</button>
+            <button className="add-btn" onClick={addIngredient}>+</button>
           </div>
 
           <h4>Inkleuringen</h4>
 
           <div className="inline">
-            <input placeholder="Stof"
+            <input
+              className="inventory-input"
+              placeholder="Stof"
               value={col.name}
               onChange={e => setCol({ ...col, name: e.target.value })}
             />
-            <input type="number" placeholder="%"
+            <input
+              className="inventory-input"
+              type="number"
+              placeholder="%"
               value={col.percentage}
               onChange={e => setCol({ ...col, percentage: e.target.value })}
             />
-            <input placeholder="Effect"
+            <input
+              className="inventory-input"
+              placeholder="Effect"
               value={col.note}
               onChange={e => setCol({ ...col, note: e.target.value })}
             />
-            <button onClick={addColorant}>+</button>
+            <button className="add-btn" onClick={addColorant}>+</button>
           </div>
 
-          <input placeholder="Baktemperatuur"
+          <input
+            className="inventory-input"
+            placeholder="Baktemperatuur"
             value={newRecipe.temperature}
             onChange={e => setNewRecipe({ ...newRecipe, temperature: e.target.value })}
           />
 
-          <input placeholder="Opmerking"
+          <input
+            className="inventory-input"
+            placeholder="Opmerking"
             value={newRecipe.notes}
             onChange={e => setNewRecipe({ ...newRecipe, notes: e.target.value })}
           />
 
-          <button onClick={save}>Opslaan</button>
+          <button className="add-btn save-btn" onClick={save}>Opslaan</button>
         </div>
       )}
 
-      {/* LIJST */}
       <div className="recipes-list">
         {recipes.map(r => (
-          <div key={r.id} className="recipe-bar" onClick={() => setSelected(r)}>
-            {r.name}
+          <div
+            key={r.id}
+            className={`recipe-bar ${selected?.id === r.id ? 'active' : ''}`}
+            onClick={() => setSelected(r)}
+          >
+            <span>{r.name}</span>
+            <small>{r.ingredients.length} ingrediënt{r.ingredients.length === 1 ? '' : 'en'}</small>
           </div>
         ))}
       </div>
 
-      {/* DETAIL */}
       {selected && (
         <div className="recipe-detail">
+          <div className="recipe-detail-header">
+            <h3>{selected.name}</h3>
+            <div className="recipe-detail-badge">{amount}g basis</div>
+          </div>
 
-          <h3>{selected.name}</h3>
+          <label className="recipe-amount-label">
+            <span>Hoeveelheid basis</span>
+            <input
+              className="inventory-input"
+              type="number"
+              value={amount}
+              onChange={e => setAmount(parseFloat(e.target.value))}
+            />
+          </label>
 
-          <input
-            type="number"
-            value={amount}
-            onChange={e => setAmount(parseFloat(e.target.value))}
-          />
+          <div className="ingredient-list">
+            {calculate(selected).map(i => (
+              <div key={i.id} className="ingredient-row">
+                <div>
+                  <strong>{i.name}</strong>
+                  <div className="ingredient-meta">{i.needed.toFixed(1)}g nodig</div>
+                </div>
 
-          {calculate(selected).map(i => (
-            <div key={i.id} className="ingredient-row">
-              {i.name} — {i.needed.toFixed(1)}g
-
-              {i.missing > 0 && (
-                <>
-                  <span> tekort {i.missing.toFixed(1)}g</span>
-                  <button onClick={() => addToList(i.name, i.missing)}>
-                    ➕
+                {i.missing > 0 && (
+                  <button className="mini-btn" onClick={() => addToList(i.name, i.missing)}>
+                    ➕ lijst
                   </button>
-                </>
-              )}
-            </div>
-          ))}
+                )}
+              </div>
+            ))}
+          </div>
 
           <h4>Inkleuringen</h4>
-          {selected.colorants.map(c => (
-            <div key={c.id}>
-              {c.name} (+{c.percentage}%) — {c.note}
-            </div>
-          ))}
+          <div className="colorant-list">
+            {selected.colorants.map(c => (
+              <div key={c.id} className="colorant-item">
+                {c.name} (+{c.percentage}%) — {c.note}
+              </div>
+            ))}
+          </div>
 
-          <p>🔥 {selected.temperature}</p>
-          <p>{selected.notes}</p>
+          <div className="recipe-notes">
+            <p>🔥 {selected.temperature}</p>
+            <p>{selected.notes}</p>
+          </div>
 
-          <button onClick={() => make(selected)}>
+          <button className="add-btn make-btn" onClick={() => make(selected)}>
             MAKEN
           </button>
         </div>

@@ -2,7 +2,6 @@ import { useState, useEffect, useRef } from 'react'
 import './App.css'
 import Inventory from './components/Inventory'
 import Recipes from './components/Recipes'
-import RecipeScaler from './components/RecipeScaler'
 import ShoppingList from './components/ShoppingList'
 import { firebaseConfigured, subscribeGlazeData, saveGlazeData } from './firebaseConfig'
 
@@ -102,12 +101,6 @@ function App() {
           Recepten
         </button>
         <button
-          className={`tab-btn ${currentTab === 'scale' ? 'active' : ''}`}
-          onClick={() => setCurrentTab('scale')}
-        >
-          Maken
-        </button>
-        <button
           className={`tab-btn ${currentTab === 'shoppinglist' ? 'active' : ''}`}
           onClick={() => setCurrentTab('shoppinglist')}
         >
@@ -120,10 +113,16 @@ function App() {
           <Inventory inventory={inventory} setInventory={setInventory} />
         )}
         {currentTab === 'recipes' && (
-          <Recipes recipes={recipes} setRecipes={setRecipes} inventory={inventory} />
-        )}
-        {currentTab === 'scale' && (
-          <RecipeScaler recipes={recipes} inventory={inventory} setInventory={setInventory} />
+          
+          <Recipes
+             recipes={recipes}
+             setRecipes={setRecipes}
+            inventory={inventory}
+             setInventory={setInventory}
+             shoppinglist={shoppinglist}
+             setShoppinglist={setShoppinglist}
+          />
+
         )}
         {currentTab === 'shoppinglist' && (
           <ShoppingList shoppinglist={shoppinglist} setShoppinglist={setShoppinglist} />

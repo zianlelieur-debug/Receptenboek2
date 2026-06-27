@@ -259,3 +259,48 @@
     grid-template-columns: 1fr;
   }
 }
+/* meer ruimte form */
+.recipe-form input {
+  margin-bottom: 10px;
+}
+
+.recipe-form input:last-of-type {
+  margin-top: 14px;
+}
+
+/* consistenter input font */
+.ingredient-row input {
+  font-family: inherit;
+  font-size: 1rem;
+}
+
+/* nieuwe info balken */
+.info-bar {
+  margin-top: 10px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: #fffefe;
+  border: 1px solid #e6d8eb;
+}
+
+/* maken knop */
+.make-btn {
+  margin-top: 14px;
+  padding: 14px;
+  width: 100%;
+  border-radius: 14px;
+  border: none;
+  font-weight: 700;
+  cursor: pointer;
+  background: linear-gradient(135deg, #f2c6d8, #bcd6ff);
+  color: #3e4763;
+}
+
+/* gif */
+.magic-gif {
+  position: fixed;
+  bottom: 80px;
+  right: 20px;
+  width: 120px;
+  z-index: 200;
+}

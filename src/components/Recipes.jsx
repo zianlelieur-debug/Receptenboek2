@@ -14,8 +14,13 @@ function Recipes({
   const [selected, setSelected] = useState(null)
   const [popup, setPopup] = useState(null)
 
+  const [confirmMake, setConfirmMake] = useState(null)
+  const [showGif, setShowGif] = useState(false)
+
   const [amount, setAmount] = useState(100)
   const [unit, setUnit] = useState('g')
+  const [suggestions, setSuggestions] = useState([])
+
 
   const emptyRecipe = {
     name: '',
@@ -80,26 +85,31 @@ function Recipes({
     setCol({ name: '', percentage: '', note: '' })
   }
 
-  const addToList = (name, qty) => {
-    const existing = shoppinglist.find(i => i.name === name)
+  // ✅ MAKEN LOGICA
+  const handleMake = (recipe) => {
+    setConfirmMake(recipe)
+  }
 
-    if (existing) {
-      setShoppinglist(shoppinglist.map(i =>
-        i.id === existing.id
-          ? { ...i, quantity: i.quantity + qty }
-          : i
-      ))
-    } else {
-      setShoppinglist([...shoppinglist, {
-        id: Date.now(),
-        name,
-        quantity: qty,
-        unit: 'g'
-      }])
-    }
+  const confirmMakeAction = () => {
+    if (!confirmMake) return
 
-    setPopup(`${name} (${qty.toFixed(1)}) toegevoegd`)
-    setTimeout(() => setPopup(null), 2000)
+    const updated = [...inventory]
+
+    confirmMake.ingredients.forEach(i => {
+      const needed = (i.percentage / 100) * amount
+      const item = updated.find(x => x.name === i.name)
+
+      if (item) {
+        item.quantity -= needed
+        if (item.quantity < 0) item.quantity = 0
+      }
+    })
+
+    setInventory([...updated])
+
+    setConfirmMake(null)
+    setShowGif(true)
+    setTimeout(() => setShowGif(false), 2000)
   }
 
   return (
@@ -126,18 +136,45 @@ function Recipes({
           <h4>Basis ingrediënten</h4>
 
           <div className="inline">
-            <input
-              className="input"
-              placeholder="Ingredient"
-              value={ing.name}
-              onChange={(e) => setIng({ ...ing, name: e.target.value })}
-            />
-            <input
-              className="input"
-              placeholder="%"
-              value={ing.percentage}
-              onChange={(e) => setIng({ ...ing, percentage: e.target.value })}
-            />
+            <div style={{ position: 'relative' }}>
+  <input
+    className="input"
+    placeholder="Ingredient"
+    value={ing.name}
+    onChange={(e) => {
+      const value = e.target.value
+      setIng({ ...ing, name: value })
+
+      if (value.length > 0) {
+        const filtered = inventory.filter(item =>
+          item.name.toLowerCase().includes(value.toLowerCase())
+        )
+        setSuggestions(filtered)
+      } else {
+        setSuggestions([])
+      }
+    }}
+  />
+
+  {/* ✅ SUGGESTIES */}
+  {suggestions.length > 0 && (
+    <div className="suggestions">
+      {suggestions.map(item => (
+        <div
+          key={item.id}
+          className="suggestion-item"
+          onClick={() => {
+            setIng({ ...ing, name: item.name })
+            setSuggestions([])
+          }}
+        >
+          {item.name}
+        </div>
+      ))}
+    </div>
+  )}
+</div>
+
             <button className="add-btn" onClick={addIngredient}>+</button>
           </div>
 
@@ -150,24 +187,12 @@ function Recipes({
           <h4>Inkleuringen</h4>
 
           <div className="inline colorant">
-            <input
-              className="input"
-              placeholder="Stof"
-              value={col.name}
-              onChange={(e) => setCol({ ...col, name: e.target.value })}
-            />
-            <input
-              className="input"
-              placeholder="%"
-              value={col.percentage}
-              onChange={(e) => setCol({ ...col, percentage: e.target.value })}
-            />
-            <input
-              className="input"
-              placeholder="Effect"
-              value={col.note}
-              onChange={(e) => setCol({ ...col, note: e.target.value })}
-            />
+            <input className="input" placeholder="Stof"
+              value={col.name} onChange={(e) => setCol({ ...col, name: e.target.value })}/>
+            <input className="input" placeholder="%"
+              value={col.percentage} onChange={(e) => setCol({ ...col, percentage: e.target.value })}/>
+            <input className="input" placeholder="Effect"
+              value={col.note} onChange={(e) => setCol({ ...col, note: e.target.value })}/>
             <button className="add-btn" onClick={addColorant}>+</button>
           </div>
 
@@ -177,23 +202,17 @@ function Recipes({
             ))}
           </div>
 
-          <input
-            className="input"
-            placeholder="Baktemperatuur"
+          <input className="input" placeholder="Baktemperatuur"
             value={newRecipe.temperature}
             onChange={(e) => setNewRecipe({ ...newRecipe, temperature: e.target.value })}
           />
 
-          <input
-            className="input"
-            placeholder="Opmerkingen"
+          <input className="input" placeholder="Opmerkingen"
             value={newRecipe.notes}
             onChange={(e) => setNewRecipe({ ...newRecipe, notes: e.target.value })}
           />
 
-          <button className="add-btn" onClick={save}>
-            Opslaan
-          </button>
+          <button className="add-btn" onClick={save}>Opslaan</button>
 
         </div>
       )}
@@ -201,31 +220,28 @@ function Recipes({
       {recipes.map(r => (
         <div key={r.id} className="recipe-block">
 
-          <div className="recipe-block-header">
-            <h3 onClick={() => setSelected(selected?.id === r.id ? null : r)}>
-              {r.name}
-            </h3>
+          {/* ✅ VOLLEDIG KLIKKBAAR */}
+          <div
+            className="recipe-block-header"
+            onClick={() => setSelected(selected?.id === r.id ? null : r)}
+            style={{ cursor: 'pointer' }}
+          >
+            <h3>{r.name}</h3>
 
             <div className="recipe-actions">
-              <button onClick={() => {setEditing(r); setNewRecipe(r); setShowForm(true)}}>✏️</button>
-              <button onClick={() => setRecipes(recipes.filter(x => x.id !== r.id))}>🗑</button>
+              <button onClick={(e) => { e.stopPropagation(); setEditing(r); setNewRecipe(r); setShowForm(true)}}>✏️</button>
+              <button onClick={(e) => { e.stopPropagation(); setRecipes(recipes.filter(x => x.id !== r.id))}}>🗑</button>
             </div>
           </div>
 
           {selected?.id === r.id && (
             <>
               <div className="amount-row">
-                <input
-                  type="number"
-                  value={amount}
-                  onChange={(e) => setAmount(parseFloat(e.target.value))}
-                />
-
+                <input type="number" value={amount}
+                  onChange={(e) => setAmount(parseFloat(e.target.value))}/>
                 <select value={unit} onChange={(e) => setUnit(e.target.value)}>
                   <option>g</option>
                   <option>kg</option>
-                  <option>ml</option>
-                  <option>l</option>
                 </select>
               </div>
 
@@ -233,48 +249,63 @@ function Recipes({
 
               {r.ingredients.map(i => {
                 const needed = (i.percentage / 100) * amount
-                const inv = inventory.find(x => x.name === i.name)
-                const have = inv?.quantity || 0
-                const missing = needed - have
-
                 return (
                   <div key={i.id} className="ingredient-row">
                     <span>{i.name}</span>
                     <span>{needed.toFixed(1)} {unit}</span>
-
-                    {missing <= 0 ? (
-                      <span className="ok">
-                        beschikbaar, nog {(have - needed).toFixed(1)}
-                      </span>
-                    ) : (
-                      <button className="missing" onClick={() => addToList(i.name, missing)}>
-                        {missing.toFixed(1)} te kort
-                      </button>
-                    )}
+                    <span></span>
                   </div>
                 )
               })}
 
               <h4>Inkleuringen</h4>
 
-              {r.colorants.map(c => {
-                const q = (c.used / 100) * amount
-                return (
-                  <div key={c.id} className="ingredient-row">
-                    <div>
-                      <strong>{c.name}</strong>
-                      <div className="small-text">{c.note}</div>
-                    </div>
-                    <input type="number" defaultValue={0}/>
-                    <span>{q.toFixed(1)} {unit}</span>
+              {r.colorants.map(c => (
+                <div key={c.id} className="ingredient-row">
+                  <div>
+                    <strong>{c.name}</strong>
+                    <div className="small-text">{c.note}</div>
                   </div>
-                )
-              })}
+                  <input type="number"/>
+                  <span>0.0 {unit}</span>
+                </div>
+              ))}
+
+              {/* ✅ NIEUWE BALKEN */}
+              <div className="info-bar">
+                🔥 {r.temperature || '-'}
+              </div>
+
+              <div className="info-bar">
+                📝 {r.notes || 'Geen opmerkingen'}
+              </div>
+
+              <button
+                className="make-btn"
+                onClick={() => handleMake(r)}
+              >
+                Maken
+              </button>
             </>
           )}
-
         </div>
       ))}
+
+      {/* ✅ CONFIRM POPUP */}
+      {confirmMake && (
+        <div className="popup">
+          Ingrediënten zullen worden verminderd
+          <div style={{ marginTop: 10, display: 'flex', gap: 8 }}>
+            <button onClick={confirmMakeAction}>Bevestigen</button>
+            <button onClick={() => setConfirmMake(null)}>Annuleren</button>
+          </div>
+        </div>
+      )}
+
+      {/* ✅ GIF */}
+      {showGif && (
+        <img src="/witchcraft.gif" className="magic-gif" alt="magic"/>
+      )}
 
       {popup && <div className="popup">{popup}</div>}
 
